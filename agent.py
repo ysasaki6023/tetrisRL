@@ -70,7 +70,7 @@ class agent:
         # saver
         self.saver = tf.train.Saver()
         self.summary = tf.summary.merge_all()
-        self.writer = tf.summary.FileWriter(self.saveFolder)
+        if self.saveFolder: self.writer = tf.summary.FileWriter(self.saveFolder)
 
         # session
         config = tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=self.memoryLimit))

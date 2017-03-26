@@ -21,14 +21,15 @@ showInterval = -1
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--batch_size",type=int,default=256)
+    parser.add_argument("--memory_limit",type=float,default=0.2)
     parser.add_argument("--learn_rate",type=float,default=1e-3)
     parser.add_argument("--discount_rate",type=float,default=0.99)
+    parser.add_argument("--replay_size",type=int,default=10000)
+    parser.add_argument("--exploration",type=float,default=0.2)
     parser.add_argument("--save_freq",type=int,default=100)
     parser.add_argument("--save_folder",type=str,default="model")
-    parser.add_argument("--memory_limit",type=float,default=0.2)
-    parser.add_argument("--replay_size",type=int,default=10000)
-    parser.add_argument("--batch_size",type=int,default=256)
-    parser.add_argument("--exploration",type=float,default=0.2)
+    parser.add_argument("--reload",type=str,default=None)
     args = parser.parse_args()
 
     gmm = gameMgr.tetris(20,10)
@@ -37,6 +38,8 @@ if __name__=="__main__":
     reward_history = collections.deque(maxlen=1000)
     loss_history   = collections.deque(maxlen=1000)
     agt = agent.agent(gmm.getActionList(),gmm.getStateSize(),n_batch=args.batch_size,replay_size=args.replay_size,learning_rate=args.learn_rate, discountRate=args.discount_rate, saveFreq=args.save_freq, saveFolder=args.save_folder, memoryLimit=args.memory_limit)
+    if args.reload : agt.load(args.reload)
+
     fig = plt.figure(figsize=(gmm.getScreenSize()[0],gmm.getScreenSize()[1]))
     fig.canvas.set_window_title("TeTris")
     setFile = file(os.path.join(args.save_folder,"settings.dat"),"w")

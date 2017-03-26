@@ -63,7 +63,7 @@ if __name__ == "__main__":
     # environmet, agent
     #gmm = gameMgr.tetris(12,6)
     gmm = gameMgr.tetris(20,10)
-    agt = agent.agent(gmm.getActionList(),gmm.getStateSize(),n_batch=1,replay_size=0)
+    agt = agent.agent(gmm.getActionList(),gmm.getStateSize(),n_batch=1,replay_size=0,learning_rate=0, discountRate=0, saveFreq=0, saveFolder=None, memoryLimit=0.1)
     agt.load(args.model_path)
 
     # variables
