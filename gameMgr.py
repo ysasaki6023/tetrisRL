@@ -11,8 +11,7 @@ class tetris:
         self.screen_n_rows = n_rows
         self.screen_n_cols = n_cols
         self.possible_actions = (0, 1, 2)
-        self.frame_rate = 10
-        self.blockTypes = [ np.array(x,dtype=np.int32) for x in [[1,1],[1,0]], [[1,0],[1,1]],[[0,1],[1,1]], [[1,1],[0,1]] ]
+        self.blockTypes = [ np.array(x,dtype=np.int32) for x in [[1,1],[1,0]], [[1,0],[1,1]],[[0,1],[1,1]], [[1,1],[0,1]], [[1,1],[0,0]], [[1,0],[1,0]]]
         self.reward_adrop = self.reward_epoch = 0
 
         # variables
@@ -35,7 +34,8 @@ class tetris:
         temp = np.zeros((self.screen_n_rows, self.screen_n_cols), dtype=np.int32)
         if   action == self.possible_actions[1]: temp[:, :-1] = self.block[:,1:  ]
         elif action == self.possible_actions[2]: temp[:,1:  ] = self.block[:, :-1]
-        else: temp[:,:] = self.block[:,:]
+        #elif action == self.possible_actions[3]: temp[:,1:  ] = self.block[:, :-1] # Rotate left
+        #elif action == self.possible_actions[4]: temp[:,1:  ] = self.block[:, :-1] # Rotate right
 
         if temp.sum() == self.block.sum() and np.logical_and(temp,self.piles).sum()==0:
             self.block = temp

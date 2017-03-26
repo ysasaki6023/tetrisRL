@@ -15,10 +15,15 @@ class agent:
         self.discount = 0.9
         self.totalCount = 0
         self.saveFreq = 1000
-        self.safeName = "model/model.ckpt"
+        self.saveFolder = "model/"
+        self.saveModel  = "model.ckpt"
+
 
         self.init_model()
         return
+
+    def leakyReLU(self,x,alpha=0.1):
+        return tf.maximum(x*alpha,x)
 
     def init_model(self):
         # input layer (8 x 8)
@@ -30,17 +35,23 @@ class agent:
         # fully connected layer (32)
         W_fc1 = tf.Variable(tf.truncated_normal([self.screen_n_rows*self.screen_n_cols, self.screen_n_rows*self.screen_n_cols], stddev=0.01))
         b_fc1 = tf.Variable(tf.zeros([self.screen_n_rows*self.screen_n_cols]))
-        h_fc1 = tf.nn.relu(tf.matmul(x_flat, W_fc1) + b_fc1)
+        h_fc1 = self.leakyReLU(tf.matmul(x_flat, W_fc1) + b_fc1)
+        tf.summary.histogram("FC1_W",W_fc1)
+        tf.summary.histogram("FC1_b",b_fc1)
 
         # fully connected layer (32)
         W_fc2 = tf.Variable(tf.truncated_normal([self.screen_n_rows*self.screen_n_cols, self.screen_n_rows*self.screen_n_cols], stddev=0.01))
         b_fc2 = tf.Variable(tf.zeros([self.screen_n_rows*self.screen_n_cols]))
-        h_fc2 = tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2)
+        h_fc2 = self.leakyReLU(tf.matmul(h_fc1, W_fc2) + b_fc2)
+        tf.summary.histogram("FC2_W",W_fc2)
+        tf.summary.histogram("FC2_b",b_fc2)
 
         # fully connected layer (32)
         W_fc3 = tf.Variable(tf.truncated_normal([self.screen_n_rows*self.screen_n_cols, self.screen_n_rows*self.screen_n_cols], stddev=0.01))
         b_fc3 = tf.Variable(tf.zeros([self.screen_n_rows*self.screen_n_cols]))
-        h_fc3 = tf.nn.relu(tf.matmul(h_fc2, W_fc3) + b_fc3)
+        h_fc3 = self.leakyReLU(tf.matmul(h_fc2, W_fc3) + b_fc3)
+        tf.summary.histogram("FC3_W",W_fc3)
+        tf.summary.histogram("FC3_b",b_fc3)
 
         # output layer (n_actions)
         W_out = tf.Variable(tf.truncated_normal([self.screen_n_rows*self.screen_n_cols, self.n_actions], stddev=0.01))
@@ -50,18 +61,21 @@ class agent:
         # loss function
         self.t = tf.placeholder(tf.float32, [None, self.n_actions])
         self.loss = tf.reduce_mean(tf.square(self.t - self.y))
+        tf.summary.scalar("loss",self.loss)
 
         # train operation
-        #optimizer = tf.train.AdamOptimizer(self.learning_rate)
         optimizer = tf.train.RMSPropOptimizer(self.learning_rate)
         self.optimizer = optimizer.minimize(self.loss)
 
         # saver
         self.saver = tf.train.Saver()
+        self.summary = tf.summary.merge_all()
+        self.writer = tf.train.SummaryWriter(self.saveFolder)
 
         # session
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
+
 
     def selectNextAction(self, state, explanation=0.1):
         if np.random.rand() <= explanation:
@@ -83,23 +97,22 @@ class agent:
             batch_x    [i,:] = self.experience[batch_choice[i]][0] # state_t
             batch_x_tp1[i,:] = self.experience[batch_choice[i]][3] # state_tp1
 
+        batch_t         = self.sess.run(self.y, feed_dict={self.x:batch_x})
         batch_max_state = self.sess.run(self.y, feed_dict={self.x:batch_x_tp1})
 
         for i in range(self.n_batch):
             state_t, actionID, reward, state_tp1, terminal = self.experience[batch_choice[i]]
-            #batch_x[i,:] = state_t
             if terminal:
                 batch_t[i,actionID] = reward
             else:
-                #batch_t[i,np.argmax(batch_max_state[i])] = reward + self.discount * np.max(batch_max_state[i]) # different from the original implementation
                 batch_t[i,actionID] = reward + self.discount * np.max(batch_max_state[i]) # different from the original implementation
 
-        _,loss = self.sess.run([self.optimizer,self.loss], feed_dict={self.x:batch_x,self.t:batch_t})
-        #print(loss)
+
+        _,loss,summary = self.sess.run([self.optimizer,self.loss,self.summary], feed_dict={self.x:batch_x,self.t:batch_t})
         if self.totalCount>0 and self.totalCount%self.saveFreq == 0:
-            self.saver.save(self.sess, "model.ckpt")
+            self.saver.save(self.sess, self.saveFolder+self.saveModel)
         self.totalCount += 1
-        return np.mean(loss)
+        return np.mean(loss),summary
 
     def load(self, model_path=None):
         self.saver.restore(self.sess, model_path)
