@@ -10,7 +10,7 @@ class tetris:
         self.name = os.path.splitext(os.path.basename(__file__))[0]
         self.screen_n_rows = n_rows
         self.screen_n_cols = n_cols
-        self.possible_actions = (0, 1, 2)
+        self.possible_actions = (0, 1, 2, 3, 4)
         self.blockTypes = [ np.array(x,dtype=np.int32) for x in [[1,1],[1,0]], [[1,0],[1,1]],[[0,1],[1,1]], [[1,1],[0,1]], [[1,1],[0,0]], [[1,0],[1,0]]]
         self.reward_adrop = self.reward_epoch = 0
 
@@ -27,6 +27,8 @@ class tetris:
             0: do nothing
             1: move left
             2: move right
+            3: turn left
+            4: turn right
         """
         self.terminal = False
 
@@ -34,7 +36,6 @@ class tetris:
         temp = np.zeros((self.screen_n_rows, self.screen_n_cols), dtype=np.int32)
         if   action == self.possible_actions[1]: temp[:, :-1] = self.block[:,1:  ]
         elif action == self.possible_actions[2]: temp[:,1:  ] = self.block[:, :-1]
-        #elif action == self.possible_actions[3]: temp[:,1:  ] = self.block[:, :-1] # Rotate left
         #elif action == self.possible_actions[4]: temp[:,1:  ] = self.block[:, :-1] # Rotate right
 
         if temp.sum() == self.block.sum() and np.logical_and(temp,self.piles).sum()==0:
@@ -90,8 +91,9 @@ class tetris:
         return self.update(action)
 
     def reset(self):
-        self.block = np.zeros((self.screen_n_rows, self.screen_n_cols), dtype=np.int32)
-        blockPos = np.random.randint(0,self.screen_n_cols-self.blockTypes[0].shape[1]+1)
+        #self.block = np.zeros((self.screen_n_rows, self.screen_n_cols), dtype=np.int32)
+        self.blockAng = np.random.randint(0,4)
+        self.blockPos = np.random.randint(0,self.screen_n_cols-self.blockTypes[0].shape[1]+1)
         blockIdx = np.random.randint(len(self.blockTypes))
         for i in range(2):
             for j in range(2):
@@ -106,7 +108,7 @@ class tetris:
         return
 
 if __name__=="__main__":
-    t = tetris(20,10)
+    t = tetris(16,10)
     fig = plt.figure(figsize=(10,5))
     fig.canvas.set_window_title("TeTris")
     epoch = 0
