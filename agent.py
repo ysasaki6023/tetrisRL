@@ -3,12 +3,11 @@ import numpy as np
 import collections
 
 class agent:
-    def __init__(self,actionList,screen_n_rows,screen_n_cols,n_batch,replay_size):
+    def __init__(self,actionList,inputSize,n_batch,replay_size):
         self.actionList = actionList
         self.n_actions = len(actionList)
         self.n_batch = n_batch
-        self.screen_n_rows = screen_n_rows
-        self.screen_n_cols = screen_n_cols
+        self.inputSize = inputSize
         self.replay_size = replay_size
         self.experience  = collections.deque(maxlen=replay_size)
         self.learning_rate = 1e-4
@@ -28,34 +27,34 @@ class agent:
 
     def init_model(self):
         # input layer (8 x 8)
-        self.x = tf.placeholder(tf.float32, [None, self.screen_n_rows, self.screen_n_cols])
+        self.x = tf.placeholder(tf.float32, [None, self.inputSize])
 
         # flatten (64)
-        x_flat = tf.reshape(self.x, [-1, self.screen_n_rows*self.screen_n_cols])
+        x_flat = tf.reshape(self.x, [-1, self.inputSize])
 
         # fully connected layer (32)
-        W_fc1 = tf.Variable(tf.truncated_normal([self.screen_n_rows*self.screen_n_cols, self.screen_n_rows*self.screen_n_cols], stddev=0.01))
-        b_fc1 = tf.Variable(tf.zeros([self.screen_n_rows*self.screen_n_cols]))
+        W_fc1 = tf.Variable(tf.truncated_normal([self.inputSize, self.inputSize], stddev=0.01))
+        b_fc1 = tf.Variable(tf.zeros([self.inputSize]))
         h_fc1 = self.leakyReLU(tf.matmul(x_flat, W_fc1) + b_fc1)
         tf.summary.histogram("FC1_W",W_fc1)
         tf.summary.histogram("FC1_b",b_fc1)
 
         # fully connected layer (32)
-        W_fc2 = tf.Variable(tf.truncated_normal([self.screen_n_rows*self.screen_n_cols, self.screen_n_rows*self.screen_n_cols], stddev=0.01))
-        b_fc2 = tf.Variable(tf.zeros([self.screen_n_rows*self.screen_n_cols]))
+        W_fc2 = tf.Variable(tf.truncated_normal([self.inputSize, self.inputSize], stddev=0.01))
+        b_fc2 = tf.Variable(tf.zeros([self.inputSize]))
         h_fc2 = self.leakyReLU(tf.matmul(h_fc1, W_fc2) + b_fc2)
         tf.summary.histogram("FC2_W",W_fc2)
         tf.summary.histogram("FC2_b",b_fc2)
 
         # fully connected layer (32)
-        W_fc3 = tf.Variable(tf.truncated_normal([self.screen_n_rows*self.screen_n_cols, self.screen_n_rows*self.screen_n_cols], stddev=0.01))
-        b_fc3 = tf.Variable(tf.zeros([self.screen_n_rows*self.screen_n_cols]))
+        W_fc3 = tf.Variable(tf.truncated_normal([self.inputSize, self.inputSize], stddev=0.01))
+        b_fc3 = tf.Variable(tf.zeros([self.inputSize]))
         h_fc3 = self.leakyReLU(tf.matmul(h_fc2, W_fc3) + b_fc3)
         tf.summary.histogram("FC3_W",W_fc3)
         tf.summary.histogram("FC3_b",b_fc3)
 
         # output layer (n_actions)
-        W_out = tf.Variable(tf.truncated_normal([self.screen_n_rows*self.screen_n_cols, self.n_actions], stddev=0.01))
+        W_out = tf.Variable(tf.truncated_normal([self.inputSize, self.n_actions], stddev=0.01))
         b_out = tf.Variable(tf.zeros([self.n_actions]))
         self.y = tf.matmul(h_fc3, W_out) + b_out
 
@@ -90,8 +89,8 @@ class agent:
         return
 
     def experienceReplay(self):
-        batch_x     = np.zeros([self.n_batch, self.screen_n_rows, self.screen_n_cols], dtype=np.float32)
-        batch_x_tp1 = np.zeros([self.n_batch, self.screen_n_rows, self.screen_n_cols], dtype=np.float32)
+        batch_x     = np.zeros([self.n_batch, self.inputSize], dtype=np.float32)
+        batch_x_tp1 = np.zeros([self.n_batch, self.inputSize], dtype=np.float32)
         batch_t     = np.zeros([self.n_batch, self.n_actions], dtype=np.float32)
 
         batch_choice = np.random.randint(0, max(1,len(self.experience)-1) ,self.n_batch)

@@ -1,7 +1,51 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import random
+import random,copy
+
+AllBlocks = []
+blocks = []
+blocks.append([[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]])
+blocks.append([[1,0,0,0],[1,0,0,0],[1,0,0,0],[1,0,0,0]])
+blocks.append([[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]])
+blocks.append([[1,0,0,0],[1,0,0,0],[1,0,0,0],[1,0,0,0]])
+AllBlocks.append(blocks)
+blocks = []
+blocks.append([[1,1,0,0],[1,1,0,0],[0,0,0,0],[0,0,0,0]])
+blocks.append([[1,1,0,0],[1,1,0,0],[0,0,0,0],[0,0,0,0]])
+blocks.append([[1,1,0,0],[1,1,0,0],[0,0,0,0],[0,0,0,0]])
+blocks.append([[1,1,0,0],[1,1,0,0],[0,0,0,0],[0,0,0,0]])
+AllBlocks.append(blocks)
+blocks = []
+blocks.append([[0,1,0,0],[1,1,0,0],[1,0,0,0],[0,0,0,0]])
+blocks.append([[1,1,0,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]])
+blocks.append([[0,1,0,0],[1,1,0,0],[1,0,0,0],[0,0,0,0]])
+blocks.append([[1,1,0,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]])
+AllBlocks.append(blocks)
+blocks = []
+blocks.append([[1,0,0,0],[1,1,0,0],[0,1,0,0],[0,0,0,0]])
+blocks.append([[0,1,1,0],[1,1,0,0],[0,0,0,0],[0,0,0,0]])
+blocks.append([[1,0,0,0],[1,1,0,0],[0,1,0,0],[0,0,0,0]])
+blocks.append([[0,1,1,0],[1,1,0,0],[0,0,0,0],[0,0,0,0]])
+AllBlocks.append(blocks)
+blocks = []
+blocks.append([[1,1,1,0],[0,1,0,0],[0,0,0,0],[0,0,0,0]])
+blocks.append([[0,1,0,0],[1,1,0,0],[0,1,0,0],[0,0,0,0]])
+blocks.append([[0,1,0,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]])
+blocks.append([[1,0,0,0],[1,1,0,0],[1,0,0,0],[0,0,0,0]])
+AllBlocks.append(blocks)
+blocks = []
+blocks.append([[1,1,1,0],[0,0,1,0],[0,0,0,0],[0,0,0,0]])
+blocks.append([[0,1,0,0],[0,1,0,0],[1,1,0,0],[0,0,0,0]])
+blocks.append([[1,0,0,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]])
+blocks.append([[1,1,0,0],[1,0,0,0],[1,0,0,0],[0,0,0,0]])
+AllBlocks.append(blocks)
+blocks = []
+blocks.append([[1,1,1,0],[1,0,0,0],[0,0,0,0],[0,0,0,0]])
+blocks.append([[1,1,0,0],[0,1,0,0],[0,1,0,0],[0,0,0,0]])
+blocks.append([[0,0,1,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]])
+blocks.append([[0,1,0,0],[0,1,0,0],[1,1,0,0],[0,0,0,0]])
+AllBlocks.append(blocks)
 
 
 class tetris:
@@ -11,8 +55,9 @@ class tetris:
         self.screen_n_rows = n_rows
         self.screen_n_cols = n_cols
         self.possible_actions = (0, 1, 2, 3, 4)
-        self.blockTypes = [ np.array(x,dtype=np.int32) for x in [[1,1],[1,0]], [[1,0],[1,1]],[[0,1],[1,1]], [[1,1],[0,1]], [[1,1],[0,0]], [[1,0],[1,0]]]
+        self.blockTypes = [ np.array(x,dtype=np.int32) for x in AllBlocks ] 
         self.reward_adrop = self.reward_epoch = 0
+        self.nextBlock = None
 
         # variables
         self.startNewEpoch()
@@ -20,6 +65,21 @@ class tetris:
         return self.possible_actions
     def getScreenSize(self):
         return (self.screen_n_rows, self.screen_n_cols)
+    def getStateSize(self):
+        return (self.screen_n_rows*self.screen_n_cols * 2 + 4*4)
+    
+    def drawBlock(self, blockIdx, blockPos, blockAng):
+        temp = np.zeros((self.screen_n_rows, self.screen_n_cols), dtype=np.int32)
+        if blockIdx==None:
+            return temp
+        for i in range(4):
+            y = blockPos[0] + i
+            if y<0 or y>=self.screen_n_rows: continue
+            for j in range(4):
+                x = blockPos[1] + j
+                if x<0 or x>=self.screen_n_cols: continue
+                temp[y,x] = self.blockTypes[blockIdx][blockAng][j,i]
+        return temp
 
     def update(self, action):
         """
@@ -33,22 +93,25 @@ class tetris:
         self.terminal = False
 
         # Move left/right
-        temp = np.zeros((self.screen_n_rows, self.screen_n_cols), dtype=np.int32)
-        if   action == self.possible_actions[1]: temp[:, :-1] = self.block[:,1:  ]
-        elif action == self.possible_actions[2]: temp[:,1:  ] = self.block[:, :-1]
-        #elif action == self.possible_actions[4]: temp[:,1:  ] = self.block[:, :-1] # Rotate right
+        blockIdx, blockPos, blockAng = self.blockIdx, copy.copy(self.blockPos), self.blockAng
+        if   action == self.possible_actions[1]: blockPos[1] -= 1
+        elif action == self.possible_actions[2]: blockPos[1] += 1
+        elif action == self.possible_actions[3]: blockAng     = (blockAng+1)%4
+        elif action == self.possible_actions[4]: blockAng     = (blockAng-1)%4
+        temp = self.drawBlock(blockIdx, blockPos, blockAng)
 
-        if temp.sum() == self.block.sum() and np.logical_and(temp,self.piles).sum()==0:
-            self.block = temp
+        if temp.sum() == 4 and np.logical_and(temp,self.piles).sum()==0:
+            self.blockPos, self.blockAng = blockPos, blockAng
 
         # Move down
-        temp = np.zeros((self.screen_n_rows, self.screen_n_cols),dtype=np.int32)
-        temp[1:,:] = self.block[:-1,:]
-        if temp.sum() == self.block.sum() and np.logical_and(temp,self.piles).sum()==0:
-            self.block = temp
+        blockIdx, blockPos, blockAng = self.blockIdx, copy.copy(self.blockPos), self.blockAng
+        blockPos[0] += 1
+        temp = self.drawBlock(blockIdx, blockPos, blockAng)
+        if temp.sum() == 4 and np.logical_and(temp,self.piles).sum()==0:
+            self.blockPos, self.blockAng = blockPos, blockAng
         else:
-            self.piles += self.block
-            self.block[:,:] = 0
+            self.piles += self.drawBlock(self.blockIdx, self.blockPos, self.blockAng)
+            self.blockIdx = None
 
         # Delete lines
         for i in range(self.screen_n_rows):
@@ -58,46 +121,42 @@ class tetris:
                 self.piles[1:(i+1),:] = self.piles[:i,:]
                 self.piles[0,:] = 0
 
-        isStartNewDrop = False
         # loose check
-        if self.piles[self.blockTypes[0].shape[0]-1,:].sum()>0:
-            isStartNewDrop = True
+        if self.piles[3,:].sum()>0:
             self.terminal = True
 
-        # Check terminal
-        if self.block.sum() == 0:
-            isStartNewDrop = True
-
-        # Reset if required
         if self.terminal:
             return False
-        if isStartNewDrop:
+
+        if self.blockIdx == None:
             self.reset()
+
         return True
 
     def observe(self):
         screen  = np.zeros((self.screen_n_rows, self.screen_n_cols), dtype=np.int32)
-        screen += self.piles
-        screen += self.block
+        piles = self.piles
+        block = self.drawBlock(self.blockIdx,self.blockPos,self.blockAng)
+        nextBlock = self.blockTypes[self.nextBlock[0]][self.nextBlock[1]]
         if self.terminal:
             reward = -10
         else:
             reward  = self.reward_adrop
             self.reward_adrop = 0
-        #return self.pile,self.block,screen, reward, self.terminal
-        return screen, reward, self.terminal
+        return (piles,block,nextBlock), reward, self.terminal
 
     def execute_action(self, action):
         return self.update(action)
 
     def reset(self):
-        #self.block = np.zeros((self.screen_n_rows, self.screen_n_cols), dtype=np.int32)
-        self.blockAng = np.random.randint(0,4)
-        self.blockPos = np.random.randint(0,self.screen_n_cols-self.blockTypes[0].shape[1]+1)
-        blockIdx = np.random.randint(len(self.blockTypes))
-        for i in range(2):
-            for j in range(2):
-                self.block[i,j+blockPos] = self.blockTypes[blockIdx][i,j]
+        blockIdx = np.random.randint(0,len(self.blockTypes))
+        blockAng = np.random.randint(0,4)
+        blockPos = [0,np.random.randint(0,self.screen_n_cols-self.blockTypes[0].shape[1]+1)]
+        if self.nextBlock==None:
+            self.nextBlock = (blockIdx, blockAng, blockPos)
+        else:
+            self.blockIdx, self.blockAng, self.blockPos = self.nextBlock
+            self.nextBlock  = (blockIdx, blockAng, blockPos)
         self.terminal = False
         return
 
@@ -116,10 +175,13 @@ if __name__=="__main__":
         epoch += 1
         print("epoch=%d"%epoch)
         t.startNewEpoch()
-        while t.execute_action(random.randint(0,2)):
-            screen, _, _ = t.observe()
+        while True:
+            action = random.randint(0,4)
+            t.execute_action(action)
+            temp, _, _ = t.observe()
+            piles,block,_ = temp
+            screen = piles+block
             img = plt.imshow(screen, interpolation="none", cmap="gray")
             fig.show()
-            #plt.draw()
             plt.pause(1e-10)
 
