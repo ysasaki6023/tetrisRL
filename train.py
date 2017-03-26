@@ -3,7 +3,7 @@ import gameMgr
 import agent
 import collections
 import matplotlib.pyplot as plt
-import csv
+import argparse,os,csv
 
 def mean(x):
     return float(sum(x))/len(x)
@@ -20,18 +20,29 @@ def flatten(x):
 showInterval = -1
 
 if __name__=="__main__":
-    #gmm = gameMgr.tetris(8,4)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--learn_rate",type=float,default=1e-3)
+    parser.add_argument("--discount_rate",type=float,default=0.99)
+    parser.add_argument("--save_freq",type=int,default=100)
+    parser.add_argument("--save_folder",type=str,default="model")
+    parser.add_argument("--memory_limit",type=float,default=0.2)
+    parser.add_argument("--replay_size",type=int,default=10000)
+    parser.add_argument("--batch_size",type=int,default=256)
+    parser.add_argument("--exploration",type=float,default=0.2)
+    args = parser.parse_args()
+
     gmm = gameMgr.tetris(20,10)
     epoch  = 0
     write_epoch = 100
     reward_history = collections.deque(maxlen=1000)
     loss_history   = collections.deque(maxlen=1000)
-    n_batch = 256
-    agt = agent.agent(gmm.getActionList(),gmm.getStateSize(),n_batch,replay_size=10000)
-    #agt.load("model/model.ckpt")
+    agt = agent.agent(gmm.getActionList(),gmm.getStateSize(),n_batch=args.batch_size,replay_size=args.replay_size,learning_rate=args.learn_rate, discountRate=args.discount_rate, saveFreq=args.save_freq, saveFolder=args.save_folder, memoryLimit=args.memory_limit)
     fig = plt.figure(figsize=(gmm.getScreenSize()[0],gmm.getScreenSize()[1]))
     fig.canvas.set_window_title("TeTris")
-    logFile = file("log","w")
+    setFile = file(os.path.join(args.save_folder,"settings.dat"),"w")
+    setFile.write(str(args))
+    setFile.close()
+    logFile = file(os.path.join(args.save_folder,"log.dat"),"w")
     logCSV  = csv.writer(logFile)
     logCSV.writerow(["epoch","last_loss","loss_mean","last_reward","mean_reward","max_reward"])
     while True:
@@ -43,7 +54,7 @@ if __name__=="__main__":
         total_reward = 0
         while not terminal:
             state_t = state_tp1
-            action = agt.selectNextAction(state_t, explanation = 0.2)
+            action = agt.selectNextAction(state_t, exploration = args.exploration)
             gmm.execute_action(action)
             all_state_tp1, reward, terminal = gmm.observe()
             state_tp1 = flatten(all_state_tp1)

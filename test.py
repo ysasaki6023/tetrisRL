@@ -12,7 +12,7 @@ import train
 
 
 def init():
-    img.set_array(state_t_1)
+    img.set_array(screen)
     plt.axis("off")
     return img,
 
@@ -41,10 +41,12 @@ def animate(step):
         gmm.execute_action(action_t)
 
     # observe environment
-    state_t_1, reward_t, terminal = gmm.observe()
+    all_state_t_1, reward_t, terminal = gmm.observe()
+    screen = all_state_t_1[0] + all_state_t_1[1]
+    state_t_1 = train.flatten(all_state_t_1)
 
     # animate
-    img.set_array(state_t_1)
+    img.set_array(screen)
     plt.axis("off")
     return img,
 
@@ -60,18 +62,20 @@ if __name__ == "__main__":
 
     # environmet, agent
     #gmm = gameMgr.tetris(12,6)
-    gmm = gameMgr.tetris(16,10)
-    agt = agent.agent(gmm.getActionList(),gmm.getScreenSize()[0],gmm.getScreenSize()[1],n_batch=1,replay_size=0)
+    gmm = gameMgr.tetris(20,10)
+    agt = agent.agent(gmm.getActionList(),gmm.getStateSize(),n_batch=1,replay_size=0)
     agt.load(args.model_path)
 
     # variables
     win, lose = 0, 0
-    state_t_1, reward_t, terminal = gmm.observe()
+    all_state_t_1, reward_t, terminal = gmm.observe()
+    screen = all_state_t_1[0] + all_state_t_1[1]
+    state_t_1 = train.flatten(all_state_t_1)
 
     # animate
     fig = plt.figure(figsize=(gmm.getScreenSize()[0]/2,gmm.getScreenSize()[1]/2))
     fig.canvas.set_window_title("TeTris")
-    img = plt.imshow(state_t_1, interpolation="none", cmap="gray")
+    img = plt.imshow(screen, interpolation="none", cmap="gray")
     ani = animation.FuncAnimation(fig, animate, init_func=init, interval=(1000 / frame_rate), blit=True)
 
     plt.show()

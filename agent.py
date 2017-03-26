@@ -1,22 +1,22 @@
 import tensorflow as tf
 import numpy as np
-import collections
+import collections,os
 
 class agent:
-    def __init__(self,actionList,inputSize,n_batch,replay_size):
+    def __init__(self,actionList,inputSize,n_batch,replay_size, learning_rate, discountRate, saveFreq, saveFolder, memoryLimit):
         self.actionList = actionList
         self.n_actions = len(actionList)
         self.n_batch = n_batch
         self.inputSize = inputSize
         self.replay_size = replay_size
         self.experience  = collections.deque(maxlen=replay_size)
-        self.learning_rate = 1e-4
-        self.discount = 0.3
+        self.learning_rate = learning_rate
+        self.discountRate = discountRate
         self.totalCount = 0
-        self.saveFreq = 1000
-        self.saveFolder = "model/"
+        self.saveFreq = saveFreq
+        self.saveFolder = saveFolder
         self.saveModel  = "model.ckpt"
-        self.memoryLimit = 0.3
+        self.memoryLimit = memoryLimit
 
 
         self.init_model()
@@ -70,7 +70,7 @@ class agent:
         # saver
         self.saver = tf.train.Saver()
         self.summary = tf.summary.merge_all()
-        self.writer = tf.train.SummaryWriter(self.saveFolder)
+        self.writer = tf.summary.FileWriter(self.saveFolder)
 
         # session
         config = tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=self.memoryLimit))
@@ -78,8 +78,8 @@ class agent:
         self.sess.run(tf.global_variables_initializer())
 
 
-    def selectNextAction(self, state, explanation=0.1):
-        if np.random.rand() <= explanation:
+    def selectNextAction(self, state, exploration=0.1):
+        if np.random.rand() <= exploration:
             return np.random.choice(self.actionList)
         else:
             return self.actionList[np.argmax(self.sess.run(self.y, feed_dict = {self.x: [state]}))]
@@ -106,12 +106,12 @@ class agent:
             if terminal:
                 batch_t[i,actionID] = reward
             else:
-                batch_t[i,actionID] = reward + self.discount * np.max(batch_max_state[i]) # different from the original implementation
+                batch_t[i,actionID] = reward + self.discountRate * np.max(batch_max_state[i]) # different from the original implementation
 
 
         _,loss,summary = self.sess.run([self.optimizer,self.loss,self.summary], feed_dict={self.x:batch_x,self.t:batch_t})
         if self.totalCount>0 and self.totalCount%self.saveFreq == 0:
-            self.saver.save(self.sess, self.saveFolder+self.saveModel)
+            self.saver.save(self.sess, os.path.join(self.saveFolder,self.saveModel))
         self.totalCount += 1
         return np.mean(loss),summary
 

@@ -61,6 +61,7 @@ class tetris:
 
         # variables
         self.startNewEpoch()
+
     def getActionList(self):
         return self.possible_actions
     def getScreenSize(self):
@@ -149,9 +150,9 @@ class tetris:
         return self.update(action)
 
     def reset(self):
-        blockIdx = np.random.randint(0,len(self.blockTypes))
-        blockAng = np.random.randint(0,4)
-        blockPos = [0,np.random.randint(0,self.screen_n_cols-self.blockTypes[0].shape[1]+1)]
+        self.blockIdx = blockIdx = np.random.randint(0,len(self.blockTypes))
+        self.blockAng = blockAng = np.random.randint(0,4)
+        self.blockPos = blockPos = [0,np.random.randint(0,self.screen_n_cols-self.blockTypes[0].shape[1]+1)]
         if self.nextBlock==None:
             self.nextBlock = (blockIdx, blockAng, blockPos)
         else:
