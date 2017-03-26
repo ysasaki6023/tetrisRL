@@ -12,11 +12,12 @@ class agent:
         self.replay_size = replay_size
         self.experience  = collections.deque(maxlen=replay_size)
         self.learning_rate = 1e-4
-        self.discount = 0.9
+        self.discount = 0.3
         self.totalCount = 0
         self.saveFreq = 1000
         self.saveFolder = "model/"
         self.saveModel  = "model.ckpt"
+        self.memoryLimit = 0.3
 
 
         self.init_model()
@@ -73,7 +74,8 @@ class agent:
         self.writer = tf.train.SummaryWriter(self.saveFolder)
 
         # session
-        self.sess = tf.Session()
+        config = tf.ConfigProto(gpu_options=tf.GPUOptions(per_process_gpu_memory_fraction=self.memoryLimit))
+        self.sess = tf.Session(config=config)
         self.sess.run(tf.global_variables_initializer())
 
 

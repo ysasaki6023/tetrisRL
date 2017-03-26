@@ -59,7 +59,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # environmet, agent
-    gmm = gameMgr.tetris(12,6)
+    #gmm = gameMgr.tetris(12,6)
+    gmm = gameMgr.tetris(16,10)
     agt = agent.agent(gmm.getActionList(),gmm.getScreenSize()[0],gmm.getScreenSize()[1],n_batch=1,replay_size=0)
     agt.load(args.model_path)
 

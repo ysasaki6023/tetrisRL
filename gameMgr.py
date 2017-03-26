@@ -83,6 +83,7 @@ class tetris:
         else:
             reward  = self.reward_adrop
             self.reward_adrop = 0
+        #return self.pile,self.block,screen, reward, self.terminal
         return screen, reward, self.terminal
 
     def execute_action(self, action):

@@ -17,9 +17,9 @@ if __name__=="__main__":
     write_epoch = 100
     reward_history = collections.deque(maxlen=1000)
     loss_history   = collections.deque(maxlen=1000)
-    n_batch = 64
+    n_batch = 256
     agt = agent.agent(gmm.getActionList(),gmm.getScreenSize()[0],gmm.getScreenSize()[1],n_batch,replay_size=10000)
-    #agt.load("model/model.ckpt")
+    agt.load("model/model.ckpt")
     fig = plt.figure(figsize=(gmm.getScreenSize()[0],gmm.getScreenSize()[1]))
     fig.canvas.set_window_title("TeTris")
     logFile = file("log","w")
@@ -33,7 +33,7 @@ if __name__=="__main__":
         total_reward = 0
         while not terminal:
             state_t = state_tp1
-            action = agt.selectNextAction(state_t, explanation = 0.1)
+            action = agt.selectNextAction(state_t, explanation = 0.2)
             gmm.execute_action(action)
             state_tp1, reward, terminal = gmm.observe()
             agt.storeExperience(state_t, action, reward, state_tp1, terminal)
